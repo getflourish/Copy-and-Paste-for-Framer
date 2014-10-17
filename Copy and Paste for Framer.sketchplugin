@@ -1,0 +1,133 @@
+// (shift cmd c)
+
+// This plugin copies FramerJS boiler plate code for the currently selected layer.
+// Example:
+
+/*
+
+	# Import Table Cell from Sketch
+	tableCell = layers.Table_Cell
+
+	# Add states for Table Cell
+	tableCell.states.add
+		hidden: {opacity: 0}
+
+	# Animation options for Table Cell
+	tableCell.states.animationOptions =
+		curve: "ease-in"
+		time: 0.25
+
+	# Interaction for Table Cell
+	tableCell.on Events.Click, ->
+		tableCell.states.next()
+
+ */
+
+if (selection.count() == 1) {
+
+	// ask user for the Framer object that stores all Sketch layers
+	var framer;
+
+	// remember the Framer/Sketch object for the current Sketch runtime session
+	var persistent = [[NSThread mainThread] threadDictionary];
+
+	if (persistent["com.getflourish.framer"] == null) {
+    	var value = String([doc askForUserInput:"Name of Framer Import:" initialValue:"layers"]);
+    	persistent["com.getflourish.framer"] = value;
+	}
+
+	framer = persistent["com.getflourish.framer"];
+
+	// get selected layer
+	var layer = selection[0];
+
+	// layer name
+	var name = layer.name();
+
+	// replace spaces by underscores
+	var cleanName = name.replace(" ", "_");
+
+	// camel case for use in Framer
+	var layerName = toCamelCase(cleanName);
+
+	// make the final definition
+	var definition = "# Import " + name + " from Sketch";
+	definition += "\n";
+	definition += layerName + " = " + framer + "." + cleanName;
+	definition += "\n";
+	definition += "\n";
+
+	// Handle artboards, groups and layers independently
+
+	if (layer.className() == "MSArtboardGroup") {
+		definition += "# Make artboard visible";
+		definition += "\n";
+		definition += layerName + ".visible = true";
+
+		// copy definition to the clipboard
+		setClipboard(definition);
+
+		// show message
+		doc.showMessage("Copied " + name + " for FramerJS.");
+
+	} else if (layer.className() == "MSLayerGroup") {
+
+		// States
+		definition += "# Add states for " + name;
+		definition += "\n";
+		definition += layerName + ".states.add";
+		definition += "\n\t";
+		definition += "hidden: {opacity: 0}";
+		definition += "\n";
+		definition += "\n";
+
+		// Animation Options
+		definition += "# Animation options for " + name;
+		definition += "\n";
+		definition += layerName + ".states.animationOptions =";
+		definition += "\n\t";
+		definition += 'curve: "ease-in"';
+		definition += "\n\t";
+		definition += 'time: 0.25';
+
+		// Interaction
+		definition += "\n";
+		definition += "\n";
+		definition += "# Interaction for " + name;
+		definition += "\n";
+		definition += layerName + ".on Events.Click, ->"
+		definition += "\n\t";
+		definition += layerName + ".states.next()";
+
+		// copy definition to the clipboard
+		setClipboard(definition);
+
+		// show message
+		doc.showMessage("Copied " + name + " for FramerJS.");
+	} else {
+		doc.showMessage("Framer can only import Groups");
+	}
+}
+
+// will convert any string to camel case
+function toCamelCase(str) {
+    return str
+        .replace(/\s(.)/g, function($1) { return $1.toUpperCase(); })
+        .replace(/\s/g, '')
+        .replace(/^(.)/, function($1) { return $1.toLowerCase(); })
+        .replace("_", "")
+        .replace("/", "");
+}
+
+// set the clipboard to the given text
+function setClipboard(text) {
+	pasteBoard = null;
+	if(typeof text === 'undefined') return null;
+
+	if(!this.pasteBoard) this.pasteBoard = NSPasteboard.generalPasteboard();
+
+	this.pasteBoard.declareTypes_owner([NSPasteboardTypeString], null);
+	this.pasteBoard.setString_forType(text, NSPasteboardTypeString);
+
+	return true;
+}
